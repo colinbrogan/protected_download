@@ -221,7 +221,7 @@
 
 			$fields = array();
 
-			$fields['pre_populate_source'] = array('existing');
+			$fields['pre_populate_source'] = 'existing';
 			$fields['destination'] = $this->get('destination');
 			$fields['delimiter'] = ',';
 			$fields['validator'] = ($fields['validator'] == 'custom' ? NULL : $this->get('validator'));
