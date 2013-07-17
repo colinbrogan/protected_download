@@ -1,6 +1,68 @@
 <?php
-Class extension_force_download extends Extension
+Class extension_protected_download extends Extension
 {
+    public function about(){
+      return array(
+        'name' => 'Protected Download',
+        'version' => '.1',
+        'release-date' => '2013-07-04',
+        'author' => array(
+          'name' => 'Colin Brogan',
+          'website' => 'http://cbrogan.com',
+          'email' => 'colinbrogan@gmail.com'
+        ),
+        'description' => 'Allow files to be uploaded on the backend which are only downloadable by site visitors through a set of keys, which optionally expire after a client-defined number of downloads.'
+      );
+    }
+
+    public function install(){
+      try {
+        Symphony::Database()->query("
+          CREATE TABLE IF NOT EXISTS `sym_fields_protected_download` (
+            `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+            `field_id` INT(11) UNSIGNED NOT NULL,
+            `destination` TEXT NULL,
+            `validator` varchar(100) default NULL,
+            `taglist_validator` varchar(100) default NULL,
+            `pre_populate_source` varchar(255) default NULL,
+            `pre_populate_min` int(11) unsigned NOT NULL,
+            `external_source_url` varchar(255) default NULL,
+            `external_source_path` varchar(255) default NULL,
+            `ordered` enum('yes','no') NOT NULL default 'no',
+            `delimiter` varchar(5) NOT NULL default ',',
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `field_id` (`field_id`)
+          ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+        ");
+      }
+      catch (Exception $ex) {
+        $extension = $this->about();
+        Administration::instance()->Page->pageAlert(__('An error occurred while installing %s. %s', array($extension['name'], $ex->getMessage())), Alert::ERROR);
+        return false;
+      }
+      return true;
+    }
+
+    public function update() {
+      return true;
+    }
+
+    public function uninstall(){
+      if(parent::uninstall() == true){
+        try {
+          Symphony::Database()->query("DROP TABLE `sym_fields_protected_download`");
+          return true;
+        }
+        catch (Exception $ex) {
+          $extension = $this->about();
+          Administration::instance()->Page->pageAlert(__('An error occurred while uninstalling %s. %s', array($extension['name'], $ex->getMessage())), Alert::ERROR);
+          return false;
+        }
+      }
+
+      return false;
+    }
+
 	// Set the delegates:
 	public function getSubscribedDelegates()
 	{
@@ -16,31 +78,6 @@ Class extension_force_download extends Extension
 				'callback' => 'savePreferences'
 			)
 		);
-	}
-
-	/**
-	 * Append preferences to the preferences page
-	 *
-	 * @param $context
-	 *  The context
-	 */
-	public function appendPreferences($context)
-	{
-		$group = new XMLElement('fieldset');
-		$group->setAttribute('class', 'settings');
-		$group->appendChild(new XMLElement('legend', __('Force Download')));
-
-		$label = Widget::Label(__('Trusted Locations'));
-
-		$locations = implode("\n", $this->getLocations());
-
-		$label->appendChild(Widget::Textarea('force_download[trusted_locations]', 5, 50, $locations));
-
-		$group->appendChild($label);
-
-		$group->appendChild(new XMLElement('p', __('Relative from the root. Single path per line. Add * at end for wild card matching.'), array('class' => 'help')));
-
-		$context['wrapper']->appendChild($group);
 	}
 
 	/**
