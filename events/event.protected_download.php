@@ -71,22 +71,26 @@
 				$field_id = $field_id[0]['field_id'];
 
 				$sql = sprintf(
-						"SELECT file FROM sym_entries_data_%s WHERE value='%s'",
-						$field_id,
-						$downloadCode
-					);
-
-				// find the file path from the download-code
-				$filename = Symphony::database()->fetch(
-					$sql
+					"SELECT file FROM sym_entries_data_%s WHERE value='%s'",
+					$field_id,
+					$downloadCode
 				);
 
+				// find the file path from the download-code
+				$filename = Symphony::database()->fetch($sql);
 
+				$sql2 = sprintf(
+					"SELECT `d-count` FROM sym_entries_data_%s WHERE value='%s'",
+					$field_id,
+					$downloadCode
+				);
+				$dcount = Symphony::database()->fetch($sql2);
+				$dcount = $dcount[0]['d-count'];
 
 				$env = $this->_env;
 				$wpath = $env['param']['workspace'];
 
-				if(!empty($filename)) {
+				if( !empty($filename) && ( $dcount>0 || $dcount==null )) {
 					$filename = 'workspace'.$filename[0]['file'];
 					$file = explode('/',$filename);
 					$file = $file[count($file)-1];
@@ -112,6 +116,7 @@
 						ob_clean();
 						flush();
 						readfile($filename);
+						Symphony::Database()->update(array('d-count'=>$dcount-1),'sym_entries_data_'.$field_id, "value='".$downloadCode."'");
 						exit;
 					} else {
 						die('File does not exist: '.$filename.'!');

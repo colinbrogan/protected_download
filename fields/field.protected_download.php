@@ -65,6 +65,7 @@
 				  `meta` varchar(255) default NULL,
 				  `handle` varchar(255) default NULL,
 				  `value` varchar(255) default NULL,
+				  `d-count` int(10) unsigned NULL,
 				  PRIMARY KEY  (`id`),
 				  KEY `file` (`file`),
 				  KEY `mimetype` (`mimetype`),
@@ -255,6 +256,14 @@
 					));
 			}
 
+			$frame = new XMLElement('div',NULL, array('class'=>'frame'));
+
+			$fieldlist = new XMLElement('ol', NULL);
+
+			$li1 = new XMLElement('li');
+			$li2 = new XMLElement('li');
+			$li3 = new XMLElement('li');
+
 			$label = Widget::Label($this->get('label'));
 			$label->setAttribute('class', 'file');
 			if(is_array($data['file'])) {
@@ -279,8 +288,27 @@
 
 			$label->appendChild($span);
 
-			if($flagWithError != NULL) $wrapper->appendChild(Widget::Error($label, $flagWithError));
-			else $wrapper->appendChild($label);
+			if($flagWithError != NULL) $li1->appendChild(Widget::Error($label, $flagWithError));
+			else $li1->appendChild($label);
+
+			$fieldlist->appendChild($li1);
+
+			$label2 = Widget::Label(__('Maximum downloads'));
+
+			// find the highest d-count in the lot
+			$dcount = $data['d-count'][0];
+			foreach($data['d-count'] as $key=>$value) {
+				if($value>$data['d-count']) {
+					$dcount = $value;
+				}
+			}
+			// ===============================
+
+			$label2->appendChild(Widget::Input('fields['.$this->get('element_name').'][d-count]',$dcount));
+			$label2->appendChild(new XMLElement('p',__('If you want the keys to expire after a number of downloads, specify a number here. Otherwise, leave blank for unlimited downloads')));
+			$li2->appendChild($label2);
+
+			$fieldlist->appendChild($li2);
 
 			// Begin enhancedtaglist import
 
@@ -289,11 +317,13 @@
 				$value = (is_array($data['value']) ? self::__tagArrayToString($data['value'], $this->get('delimiter'), $this->get('ordered')) : $data['value']);
 			}
 
-			$label = Widget::Label('Download codes');
-			$label->appendChild(Widget::Input('fields'.$fieldnamePrefix.'['.$this->get('element_name').'][keys]'.$fieldnamePostfix, (strlen($value) != 0 ? $value : NULL)));
+			$label3 = Widget::Label('Download codes');
+			$label3->appendChild(Widget::Input('fields'.$fieldnamePrefix.'['.$this->get('element_name').'][keys]'.$fieldnamePostfix, (strlen($value) != 0 ? $value : NULL)));
 
-			if($flagWithError != NULL) $wrapper->appendChild(Widget::Error($label, $flagWithError));
-			else $wrapper->appendChild($label);
+			if($flagWithError != NULL) $li3->appendChild(Widget::Error($label3, $flagWithError));
+			else $li3->appendChild($label3);
+
+			$fieldlist->appendChild($li3);
 			
 			$existing_tags = $this->findAllTags();
 			if(is_array($existing_tags) && !empty($existing_tags)){
@@ -301,8 +331,10 @@
 				$taglist->setAttribute('class', 'keys');
 				$taglist->appendChild(new XMLElement('li', __('Existing Codes:')));
 				foreach($existing_tags as $tag) $taglist->appendChild(new XMLElement('li', $tag));
-				$wrapper->appendChild($taglist);
+				$li3->appendChild($taglist);
 			}
+			$frame->appendChild($fieldlist);
+			$wrapper->appendChild($frame);
 		}
 
 		public function checkPostFieldData($data, &$message, $entry_id=NULL){
@@ -328,6 +360,11 @@
 			if(!empty($duplicate_keys)) {
 				$message = __('The download codes specified are used in other Album entries, look at the list below and make sure to only add unique download codes.');
 				return self::__ERROR_CUSTOM__;
+			}
+
+			if ( !is_numeric($data['d-count']) && !empty($data['d-count']) ) {
+				$message = __('Maximum Download field must have a valid number or left empty');
+				return self::__INVALID_FIELDS__;
 			}
 
 			// =================
@@ -461,6 +498,7 @@
 			foreach($data['keys'] as $value){
 				$result['value'][] = $value;
 				$result['handle'][] = Lang::createHandle($value);
+				$result['d-count'][] = $data['d-count'];
 			}
 
 			if(empty($result)) {
