@@ -234,7 +234,7 @@
 		Publish:
 	-------------------------------------------------------------------------*/
 
-		public function displayPublishPanel(XMLElement &$wrapper, $data = null, $flagWithError = null, $fieldnamePrefix = null, $fieldnamePostfix = null, $entry_id = null){
+		public function displayPublishPanel(XMLElement &$wrapper, $data = null, $flagWithError = null, $fieldnamePrefix = null, $fieldnamePostfix = null, $entry_id = null) {
 		    if(class_exists('Administration')
 		      && Administration::instance() instanceof Administration
 		      && Administration::instance()->Page instanceof HTMLPage
@@ -296,12 +296,16 @@
 			$label2 = Widget::Label(__('Maximum downloads'));
 
 			// find the highest d-count in the lot
-			$dcount = $data['d-count'][0];
-			foreach($data['d-count'] as $key=>$value) {
-				if($value>$data['d-count']) {
-					$dcount = $value;
+			$dcount = null;
+			if ($data) {
+				$dcount = $data['d-count'][0];
+				foreach($data['d-count'] as $key=>$value) {
+					if($value>$data['d-count']) {
+						$dcount = $value;
+					}
 				}
 			}
+			
 			// ===============================
 
 			$label2->appendChild(Widget::Input('fields['.$this->get('element_name').'][d-count]',$dcount));
