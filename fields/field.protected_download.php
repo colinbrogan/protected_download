@@ -108,7 +108,6 @@
 			} else {
 				$sql = sprintf("SELECT value FROM sym_entries_data_%s", $this->get('id'));
 			}
-			echo $sql;
 			$result = array();
 			$result = Symphony::Database()->fetch( $sql );
 			return $result;
