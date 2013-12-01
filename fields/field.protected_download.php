@@ -712,9 +712,13 @@
 				if ($this->get('ordered') == 'yes') {
 					$attributes['order'] = $index + 1;
 				}
-				$list->appendChild(new XMLElement(
+				$key = new XMLElement(
 					'key', General::sanitize($value), $attributes
+				);
+				$key->setAttributeArray(array(
+					'd-count' => $data['d-count'][$index],
 				));
+				$list->appendChild($key);
 			}
 
 			$item->appendChild($list);
