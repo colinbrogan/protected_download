@@ -239,6 +239,8 @@
 		      && Administration::instance()->Page instanceof HTMLPage
 		    ) {
 		      Administration::instance()->Page->addStylesheetToHead(URL . '/extensions/protected_download/assets/field_protected_download.publish.css', 'screen', 100, false);
+		      Administration::instance()->Page->addScriptToHead(URL . '/extensions/protected_download/assets/field_protected_download.publish.js', 100, false);
+
 		    }
 
 			if (is_dir(DOCROOT . $this->get('destination') . '/') === false) {
@@ -292,50 +294,67 @@
 
 			$fieldlist->appendChild($li1);
 
-			$label2 = Widget::Label(__('Maximum downloads'));
+//			$label2 = Widget::Label(__('Maximum downloads'));
 
 			// find the highest d-count in the lot
-			$dcount = null;
-			if ($data) {
-				$dcount = $data['d-count'][0];
-				foreach($data['d-count'] as $key=>$value) {
-					if($value>$data['d-count']) {
-						$dcount = $value;
-					}
-				}
-			}
+//			$dcount = null;
+//			if ($data) {
+//				$dcount = $data['d-count'][0];
+//				if(is_array($data['d-count'])) {
+//					foreach($data['d-count'] as $key=>$value) {
+//						if($value>$data['d-count']) {
+//							$dcount = $value;
+//						}
+//					}					
+//				}
+//			}
 			
 			// ===============================
 
-			$label2->appendChild(Widget::Input('fields['.$this->get('element_name').'][d-count]',$dcount));
-			$label2->appendChild(new XMLElement('p',__('If you want the keys to expire after a number of downloads, specify a number here. Otherwise, leave blank for unlimited downloads')));
-			$li2->appendChild($label2);
+//			$label2->appendChild(Widget::Input('fields['.$this->get('element_name').'][d-count]',$dcount));
+//			$label2->appendChild(new XMLElement('p',__('If you want the keys to expire after a number of downloads, specify a number here. Otherwise, leave blank for unlimited downloads')));
+//			$li2->appendChild($label2);
 
-			$fieldlist->appendChild($li2);
+//			$fieldlist->appendChild($li2);
 
 			// Begin enhancedtaglist import
+//			print_r($data);
 
-			$value = NULL;
-			if(isset($data['value'])){
-				$value = (is_array($data['value']) ? self::__tagArrayToString($data['value'], $this->get('delimiter'), $this->get('ordered')) : $data['value']);
+
+
+			if($data) {
+				if(array_key_exists('value',$data)) {
+					$label3 = Widget::Label('Download codes');
+					$codelist = new XMLElement('ul', NULL);
+					$codelist->setAttribute('class','codelist');
+					foreach($data['value'] as $key => $codeInst) {
+						$code = new XMLElement('li');
+						$code->appendChild(Widget::Input('fields'.$fieldnamePrefix.'['.$this->get('element_name').'][keys]['.$key.']'.$fieldnamePostfix, strlen($codeInst) != 0 ? $codeInst : NULL, 'text', array('size','10') ));
+						$code->appendChild(Widget::Input('fields'.$fieldnamePrefix.'['.$this->get('element_name').'][d-count]['.$key.']'.$fieldnamePostfix, $data['d-count'][$key], 'text', array('size','2') ));
+						if($data['d-count'][$key] == 0 && !empty($codeInst) ) {
+							$code->setAttribute('class', 'expired');
+						}
+						$codelist->appendChild($code);
+					}
+					$moreCount = (count($data['value']) % 2 == 1 ) ? 15 : 16;
+					for($i = 0; $i<$moreCount; $i++) {
+						$code = new XMLElement('li');
+						$code->appendChild(Widget::Input('fields'.$fieldnamePrefix.'['.$this->get('element_name').'][keys]['.($key+$i+1).']'.$fieldnamePostfix, '', 'text', array('size','10') ));
+						$code->appendChild(Widget::Input('fields'.$fieldnamePrefix.'['.$this->get('element_name').'][d-count]['.($key+$i+1).']'.$fieldnamePostfix, '', 'text', array('size','2') ));
+						$code->setAttribute('class', 'new');
+						$codelist->appendChild($code);
+					}
+
+					$label3->appendChild($codelist);
+					if($flagWithError != NULL) $li3->appendChild(Widget::Error($label3, $flagWithError));
+					else $li3->appendChild($label3);
+
+					$fieldlist->appendChild($li3);	
+				}				
 			}
+		
+//			$label3->appendChild(Widget::Input('fields'.$fieldnamePrefix.'['.$this->get('element_name').'][keys]'.$fieldnamePostfix, (strlen($value) != 0 ? $value : NULL)));
 
-			$label3 = Widget::Label('Download codes');
-			$label3->appendChild(Widget::Input('fields'.$fieldnamePrefix.'['.$this->get('element_name').'][keys]'.$fieldnamePostfix, (strlen($value) != 0 ? $value : NULL)));
-
-			if($flagWithError != NULL) $li3->appendChild(Widget::Error($label3, $flagWithError));
-			else $li3->appendChild($label3);
-
-			$fieldlist->appendChild($li3);
-			
-			$existing_tags = $this->findAllTags();
-			if(is_array($existing_tags) && !empty($existing_tags)){
-				$taglist = new XMLElement('ul');
-				$taglist->setAttribute('class', 'keys');
-				$taglist->appendChild(new XMLElement('li', __('Existing Codes:')));
-				foreach($existing_tags as $tag) $taglist->appendChild(new XMLElement('li', $tag));
-				$li3->appendChild($taglist);
-			}
 			$frame->appendChild($fieldlist);
 			$wrapper->appendChild($frame);
 		}
@@ -351,10 +370,8 @@
 			
 			$prev_keys = $this->findOtherTags($entry_id);
 
-			$posted_keys = explode(',',$data['keys']);
-
 			$duplicate_keys = array();
-			foreach($posted_keys as $index=>$key) {
+			foreach($data['keys'] as $index=>$key) {
 				$key = trim($key);
 				if($this->search_codes($key,$prev_keys)) {
 					$duplicate_keys[] = $key;
@@ -362,12 +379,8 @@
 			}
 			if(!empty($duplicate_keys)) {
 				$message = __('The download codes specified are used in other Album entries, look at the list below and make sure to only add unique download codes.');
+				$message.=implode($duplicate_keys,', ');
 				return self::__ERROR_CUSTOM__;
-			}
-
-			if ( !is_numeric($data['d-count']) && !empty($data['d-count']) ) {
-				$message = __('Maximum Download field must have a valid number or left empty');
-				return self::__INVALID_FIELDS__;
 			}
 
 			// =================
@@ -485,23 +498,19 @@
 		public function processRawFieldData($data, &$status, &$message=null, $simulate = false, $entry_id = null) {
 			$status = self::__OK__;
 
-			// begin enhancedtaglist import
-			$tag_data = preg_split('/\\' . $this->get('delimiter') . '\s*/i', $data['keys'], -1, PREG_SPLIT_NO_EMPTY);
-			$data['keys'] = array_map('trim', $tag_data);
 
 			if(empty($data['keys'])) return;
 
 			$data['keys'] = General::array_remove_duplicates($data['keys']);
 
-			if ($this->get('ordered') != 'yes') {
-				sort($data['keys']);
-			}
 
 			$result = array();
-			foreach($data['keys'] as $value){
-				$result['value'][] = $value;
-				$result['handle'][] = Lang::createHandle($value);
-				$result['d-count'][] = $data['d-count'];
+			foreach($data['keys'] as $key => $keyInst){
+				if(!empty($data['keys'])) {
+					$result['value'][$key] = $keyInst;
+					$result['handle'][$key] = $keyInst;
+					$result['d-count'][$key] = $data['d-count'][$key];
+				}
 			}
 
 			if(empty($result)) {
@@ -879,51 +888,3 @@
 //				$data = implode("', '", $data);
 //				$joins .= "
 //					LEFT JOIN
-//						`sym_entries_data_{$field_id}` AS t{$field_id}_{$this->_key}
-//						ON (e.id = t{$field_id}_{$this->_key}.entry_id)
-//				";
-//				$where .= "
-//					AND t{$field_id}_{$this->_key}.{$column} IN ('{$data}')
-//				";
-//			}
-
-//			return true;
-//		}
-
-	/*-------------------------------------------------------------------------
-		Sorting:
-	-------------------------------------------------------------------------*/
-
-//		public function buildSortingSQL(&$joins, &$where, &$sort, $order='ASC'){
-//			if(in_array(strtolower($order), array('random', 'rand'))) {
-//				$sort = 'ORDER BY RAND()';
-//			}
-//			else {
-//				$sort = sprintf(
-//					'ORDER BY (
-//						SELECT %s
-//						FROM tbl_entries_data_%d AS `ed`
-//						WHERE entry_id = e.id
-//					) %s',
-//					'`ed`.file',
-//					$this->get('id'),
-//					$order
-//				);
-//			}
-//		}
-
-	/*-------------------------------------------------------------------------
-		Events:
-	-------------------------------------------------------------------------*/
-
-		public function getExampleFormMarkup(){
-			$label = Widget::Label($this->get('label'));
-			$label->appendChild(Widget::Input('fields['.$this->get('element_name').']', NULL, 'file'));
-
-			return $label;
-		}
-
-		public function getParameterPoolValue(array $data, $entry_id=NULL) {
-			return $this->get('id');
-		}
-	}

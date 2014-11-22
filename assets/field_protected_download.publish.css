@@ -14,3 +14,40 @@ ul.keys li {
 	float: none;
 	border: none;
 }
+ul.codelist {
+	margin-left: 0;
+	display: inline-block;
+	width: 100%;
+	padding: 15px 0px;
+	overflow-y: auto;
+	max-height:500px;
+}
+ul.codelist li {
+	float: left;
+	width: 45%;
+	padding-left: 2%;
+}
+ul.codelist li:nth-of-type(2n+1) {
+	padding-left: none !important;
+	padding-right: 2%;
+	border-right: 1px solid grey;
+}
+
+ul.codelist li input:nth-child(1) {
+	float: left;
+	width: 75%;
+}
+
+ul.codelist li input:nth-child(2) {
+	float: right;
+	width: 20%;
+}
+
+ul.codelist li.expired {
+	opacity: 0.5;
+}
+
+.frame label {
+	font-size: 13px;
+	font-weight: bold;
+}
