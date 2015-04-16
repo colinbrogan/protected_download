@@ -114,10 +114,12 @@
 		}
 
 		public function search_codes($code, $array) {
-			foreach($array as $key=>$value) {
-				if($value['value']==$code) {
-					return true;
-				}
+			if($code != "") {
+				foreach($array as $key=>$value) {
+					if($value['value']==$code) {
+						return true;
+					}
+				}				
 			}
 			return false;
 		}
@@ -257,13 +259,13 @@
 					));
 			}
 
-			$frame = new XMLElement('div',NULL, array('class'=>'frame'));
+//			$frame = new XMLElement('div',NULL, array('class'=>'frame'));
 
-			$fieldlist = new XMLElement('ol', NULL);
+//			$fieldlist = new XMLElement('ol', NULL);
 
-			$li1 = new XMLElement('li');
-			$li2 = new XMLElement('li');
-			$li3 = new XMLElement('li');
+//			$li1 = new XMLElement('li');
+//			$li2 = new XMLElement('li');
+//			$li3 = new XMLElement('li');
 
 			$label = Widget::Label($this->get('label'));
 			$label->setAttribute('class', 'file');
@@ -289,10 +291,9 @@
 
 			$label->appendChild($span);
 
-			if($flagWithError != NULL) $li1->appendChild(Widget::Error($label, $flagWithError));
-			else $li1->appendChild($label);
+			$wrapper->appendChild($label);
 
-			$fieldlist->appendChild($li1);
+//			$frame->appendChild($label);
 
 //			$label2 = Widget::Label(__('Maximum downloads'));
 
@@ -322,20 +323,27 @@
 
 
 
-			if($data) {
-				if(array_key_exists('value',$data)) {
 					$label3 = Widget::Label('Download codes');
+					$span2 = new XMLElement('span', NULL, array('class' => 'frame'));
 					$codelist = new XMLElement('ul', NULL);
 					$codelist->setAttribute('class','codelist');
-					foreach($data['value'] as $key => $codeInst) {
-						$code = new XMLElement('li');
-						$code->appendChild(Widget::Input('fields'.$fieldnamePrefix.'['.$this->get('element_name').'][keys]['.$key.']'.$fieldnamePostfix, strlen($codeInst) != 0 ? $codeInst : NULL, 'text', array('size','10') ));
-						$code->appendChild(Widget::Input('fields'.$fieldnamePrefix.'['.$this->get('element_name').'][d-count]['.$key.']'.$fieldnamePostfix, $data['d-count'][$key], 'text', array('size','2') ));
-						if($data['d-count'][$key] == 0 && !empty($codeInst) ) {
-							$code->setAttribute('class', 'expired');
+					if($data) {
+						if(array_key_exists('value',$data)) {
+							// If there are codes already applied to the entry, build them out;
+							if(is_array($data['value'])) {
+								foreach($data['value'] as $key => $codeInst) {
+									$code = new XMLElement('li');
+									$code->appendChild(Widget::Input('fields'.$fieldnamePrefix.'['.$this->get('element_name').'][keys]['.$key.']'.$fieldnamePostfix, strlen($codeInst) != 0 ? $codeInst : NULL, 'text', array('size','10') ));
+									$code->appendChild(Widget::Input('fields'.$fieldnamePrefix.'['.$this->get('element_name').'][d-count]['.$key.']'.$fieldnamePostfix, $data['d-count'][$key], 'text', array('size','2') ));
+									if($data['d-count'][$key] == 0 && !empty($codeInst) ) {
+										$code->setAttribute('class', 'expired');
+									}
+									$codelist->appendChild($code);
+								}
+							}
 						}
-						$codelist->appendChild($code);
 					}
+					// add black codes to entry
 					$moreCount = (count($data['value']) % 2 == 1 ) ? 15 : 16;
 					for($i = 0; $i<$moreCount; $i++) {
 						$code = new XMLElement('li');
@@ -345,18 +353,17 @@
 						$codelist->appendChild($code);
 					}
 
-					$label3->appendChild($codelist);
-					if($flagWithError != NULL) $li3->appendChild(Widget::Error($label3, $flagWithError));
-					else $li3->appendChild($label3);
+					$span2->appendChild($codelist);
+					$label3->appendChild($span2);
+					if($flagWithError != NULL) $wrapper->appendChild(Widget::Error($label3, $flagWithError));
+					else $wrapper->appendChild($label3);
 
-					$fieldlist->appendChild($li3);	
-				}				
-			}
+//					$fieldlist->appendChild($li3);	
 		
 //			$label3->appendChild(Widget::Input('fields'.$fieldnamePrefix.'['.$this->get('element_name').'][keys]'.$fieldnamePostfix, (strlen($value) != 0 ? $value : NULL)));
 
-			$frame->appendChild($fieldlist);
-			$wrapper->appendChild($frame);
+//			$frame->appendChild($fieldlist);
+//			$wrapper->appendChild($frame);
 		}
 
 		public function checkPostFieldData($data, &$message, $entry_id=NULL){
@@ -370,17 +377,31 @@
 			
 			$prev_keys = $this->findOtherTags($entry_id);
 
+
 			$duplicate_keys = array();
-			foreach($data['keys'] as $index=>$key) {
-				$key = trim($key);
-				if($this->search_codes($key,$prev_keys)) {
-					$duplicate_keys[] = $key;
+			if(array_key_exists('keys', $data)) {
+				foreach($data['keys'] as $index=>$key) {
+					$key = trim($key);
+					if($this->search_codes($key,$prev_keys)) {
+						$duplicate_keys[] = $key;
+					}
 				}
 			}
 			if(!empty($duplicate_keys)) {
 				$message = __('The download codes specified are used in other Album entries, look at the list below and make sure to only add unique download codes.');
 				$message.=implode($duplicate_keys,', ');
+				$message.="|".implode($prev_keys, ', ');
+				$message.="|".implode($data['keys'], ', ');
 				return self::__ERROR_CUSTOM__;
+			}
+
+			if(array_key_exists('keys', $data)) {
+				foreach($data['keys'] as $index=>$key) {
+					if(!ctype_alnum($key) && !empty($key)) {
+						$message = __('The key "'.$key.'" contains a character you cannot use. Keep it to letters and numbers only');
+						return self::__ERROR_CUSTOM__;
+					}
+				}
 			}
 
 			// =================
@@ -414,7 +435,7 @@
 					$message = __('The file uploaded is no longer available. Please check that it exists, and is readable.');
 
 					return self::__INVALID_FIELDS__;
-				}
+				}      
 
 				// Ensure that the file still matches the validator and hasn't
 				// changed since it was uploaded.
@@ -497,8 +518,7 @@
 
 		public function processRawFieldData($data, &$status, &$message=null, $simulate = false, $entry_id = null) {
 			$status = self::__OK__;
-
-
+			$message = __('I am a message');
 			if(empty($data['keys'])) return;
 
 			$data['keys'] = General::array_remove_duplicates($data['keys']);
@@ -593,8 +613,10 @@
 					&& is_file(WORKSPACE . $existing_file)
 				) {
 					General::deleteFile(WORKSPACE . $existing_file);
+					return $result;
 				}
 			}
+
 
 			// Do not continue on upload error:
 			if ($data['file']['error'] == UPLOAD_ERR_NO_FILE || $data['file']['error'] != UPLOAD_ERR_OK) {
@@ -630,7 +652,7 @@
 			// Attempt to upload the file:
 			$uploaded = General::uploadFile(
 				$abs_path, $data['file']['name'], $data['file']['tmp_name'],
-				0700
+				0777
 			);
 
 			if ($uploaded === false) {
@@ -840,6 +862,7 @@
 				return $data['file'];
 			}
 		}
+	}
 
 	/*-------------------------------------------------------------------------
 		Filtering:

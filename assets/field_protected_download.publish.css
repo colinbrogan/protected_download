@@ -24,15 +24,20 @@ ul.codelist {
 }
 ul.codelist li {
 	float: left;
-	width: 45%;
+	width: 49%;
 	padding-left: 2%;
+	clear: none;
+	border: none !important;
 }
 ul.codelist li:nth-of-type(2n+1) {
 	padding-left: none !important;
-	padding-right: 2%;
-	border-right: 1px solid grey;
+	padding-right: 6%;
+	border-right: none;
 }
 
+ul.codelist li input {
+	margin-top: 0px !important;
+}
 ul.codelist li input:nth-child(1) {
 	float: left;
 	width: 75%;
@@ -43,8 +48,9 @@ ul.codelist li input:nth-child(2) {
 	width: 20%;
 }
 
-ul.codelist li.expired {
-	opacity: 0.5;
+ul.codelist li.expired input {
+	background-color: rgb(255, 217, 217);
+
 }
 
 .frame label {
